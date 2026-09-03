@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createTodoAction, deleteTodoAction, toggleTodoAction, updateTodoAction } from "./actions";
 import { getTodosForUser } from "@/lib/todos";
 import { signOut } from "@/lib/auth-actions";
 import { createClient } from "@/utils/supabase/server";
+import { SubmitButton } from "@/components/submit-button";
 
 // This route reads the session cookie on every request, so it's always
 // server-rendered per-user rather than served from the static shell.
@@ -37,12 +39,12 @@ export default async function AdminPage() {
           ) : null}
         </div>
         <form action={signOut}>
-          <button
-            type="submit"
-            className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          <SubmitButton
+            pendingText="Signing out…"
+            className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-70 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
             Sign out
-          </button>
+          </SubmitButton>
         </form>
       </header>
 
@@ -54,12 +56,12 @@ export default async function AdminPage() {
           placeholder="What needs doing?"
           className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
         />
-        <button
-          type="submit"
-          className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+        <SubmitButton
+          pendingText="Adding…"
+          className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-70 dark:hover:bg-[#ccc]"
         >
           Add
-        </button>
+        </SubmitButton>
       </form>
 
       <ul className="mt-6 flex flex-col gap-2">
@@ -76,17 +78,15 @@ export default async function AdminPage() {
             <form action={toggleTodoAction}>
               <input type="hidden" name="id" value={todo.id} />
               <input type="hidden" name="isDone" value={(!todo.isDone).toString()} />
-              <button
-                type="submit"
+              <SubmitButton
+                iconOnly
                 aria-label={todo.isDone ? "Mark as not done" : "Mark as done"}
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs ${
-                  todo.isDone
-                    ? "border-emerald-500 bg-emerald-500 text-white"
-                    : "border-zinc-300 text-transparent dark:border-zinc-600"
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs text-zinc-400 disabled:opacity-100 dark:text-zinc-500 ${
+                  todo.isDone ? "border-emerald-500 bg-emerald-500" : "border-zinc-300 dark:border-zinc-600"
                 }`}
               >
-                ✓
-              </button>
+                <span className={todo.isDone ? "text-white" : "invisible"}>✓</span>
+              </SubmitButton>
             </form>
 
             <form action={updateTodoAction} className="flex flex-1 items-center gap-2">
@@ -99,22 +99,29 @@ export default async function AdminPage() {
                   todo.isDone ? "text-zinc-400 line-through" : "text-zinc-950 dark:text-zinc-50"
                 }`}
               />
-              <button
-                type="submit"
-                className="rounded-md px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
+              <SubmitButton
+                pendingText="Saving…"
+                className="rounded-md px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-70 dark:text-zinc-400 dark:hover:bg-zinc-900"
               >
                 Save
-              </button>
+              </SubmitButton>
             </form>
+
+            <Link
+              href={`/todos/${todo.id}`}
+              className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900"
+            >
+              View
+            </Link>
 
             <form action={deleteTodoAction}>
               <input type="hidden" name="id" value={todo.id} />
-              <button
-                type="submit"
-                className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+              <SubmitButton
+                pendingText="Deleting…"
+                className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-70 dark:text-red-400 dark:hover:bg-red-950"
               >
                 Delete
-              </button>
+              </SubmitButton>
             </form>
           </li>
         ))}

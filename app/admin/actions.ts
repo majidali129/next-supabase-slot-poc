@@ -1,9 +1,17 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createTodo, deleteTodo, setTodoDone, updateTodoTitle } from "@/lib/todos";
+import {
+  createTodo,
+  deleteTodo,
+  publicTodoTag,
+  PUBLIC_TODOS_TAG,
+  setTodoDone,
+  updateTodoTitle,
+  userTodosTag,
+} from "@/lib/todos";
 import { createClient } from "@/utils/supabase/server";
 
 /**
@@ -22,20 +30,32 @@ async function requireUserId() {
   return userId;
 }
 
-function revalidateTodoViews() {
+/**
+ * Invalidates both the ISR page cache (`revalidatePath`, for the next visit)
+ * and the underlying `unstable_cache` data (`revalidateTag`, for the cached
+ * Prisma reads in lib/todos.ts) so admin edits show up everywhere promptly.
+ */
+function revalidateTodoViews(userId: string, todoId?: string) {
   revalidatePath("/admin");
   revalidatePath("/todos");
+  if (todoId) revalidatePath(`/todos/${todoId}`);
+
+  revalidateTag(userTodosTag(userId), "max");
+  revalidateTag(PUBLIC_TODOS_TAG, "max");
+  if (todoId) revalidateTag(publicTodoTag(todoId), "max");
 }
 
 export async function createTodoAction(formData: FormData) {
   const userId = await requireUserId();
   const title = String(formData.get("title") ?? "").trim();
 
+  let createdId: string | undefined;
   if (title.length > 0) {
-    await createTodo(userId, title);
+    const todo = await createTodo(userId, title);
+    createdId = todo.id;
   }
 
-  revalidateTodoViews();
+  revalidateTodoViews(userId, createdId);
 }
 
 export async function toggleTodoAction(formData: FormData) {
@@ -44,7 +64,7 @@ export async function toggleTodoAction(formData: FormData) {
   const isDone = formData.get("isDone") === "true";
 
   await setTodoDone(userId, id, isDone);
-  revalidateTodoViews();
+  revalidateTodoViews(userId, id);
 }
 
 export async function updateTodoAction(formData: FormData) {
@@ -56,7 +76,7 @@ export async function updateTodoAction(formData: FormData) {
     await updateTodoTitle(userId, id, title);
   }
 
-  revalidateTodoViews();
+  revalidateTodoViews(userId, id);
 }
 
 export async function deleteTodoAction(formData: FormData) {
@@ -64,5 +84,5 @@ export async function deleteTodoAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
 
   await deleteTodo(userId, id);
-  revalidateTodoViews();
+  revalidateTodoViews(userId, id);
 }
